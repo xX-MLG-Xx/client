@@ -2,7 +2,7 @@
 import React, {Component} from 'react'
 import {findDOMNode} from 'react-dom'
 import Box from './box'
-import {getStyle as getTextStyle} from './text.desktop'
+import Text, {getStyle as getTextStyle} from './text.desktop'
 import {globalStyles, globalColors} from '../styles'
 import {getStyle} from './text'
 
@@ -41,7 +41,7 @@ class Input extends Component<void, Props, State> {
   }
 
   clearValue () {
-    this.onChange({target: {value: null}})
+    this._onChange({target: {value: null}})
   }
 
   _onChange = (event: {target: {value: ?string}}) => {
@@ -85,7 +85,7 @@ class Input extends Component<void, Props, State> {
   }
 
   _underlineColor () {
-    if (this.props.underlineShow) {
+    if (this.props.hideUnderline) {
       return globalColors.transparent
     }
 
@@ -97,13 +97,19 @@ class Input extends Component<void, Props, State> {
   }
 
   render () {
-    const textStyle = getTextStyle('Header')
-
+    const headerTextStyle = getTextStyle('Header')
+    const bodySmallTextStyle = getTextStyle('BodySmall')
     const underlineColor = this._underlineColor()
 
-    const inputStyle = {
-      fontSize: textStyle.fontSize,
+    const style = {
+      ...globalStyles.flexBoxColumn,
       maxWidth: 460,
+      width: '100%',
+    }
+
+    const inputStyle = {
+      fontSize: headerTextStyle.fontSize,
+      width: '100%',
       minWidth: 333,
       border: 'none',
       borderBottom: `1px solid ${underlineColor}`,
@@ -111,20 +117,34 @@ class Input extends Component<void, Props, State> {
       textAlign: 'center',
     }
 
-    console.log('inputStyle', inputStyle)
+    const errorStyle = {
+      textAlign: 'center',
+      width: '100%',
+    }
 
+    const floatingStyle = {
+      textAlign: 'center',
+      minHeight: bodySmallTextStyle.lineHeight,
+      color: globalColors.blue,
+      display: 'block',
+    }
+
+    const floatingHintText = (this.state.value && this.state.value.length) &&
+      (this.props.floatingHintTextOverride || (this.props.hintText && this.props.hintText) || ' ')
 
     return (
-      <Box>
+      <Box style={{...style, ...this.props.style}}>
+        <Text type='BodySmall' style={floatingStyle}>{floatingHintText}</Text>
         <input
           onChange={this._onChange}
           value={this.state.value}
-          style={{...inputStyle, ...this.props.style}}
+          style={{...inputStyle, ...this.props.inputStyle}}
           placeholder={this.props.hintText}
           onFocus={this._onFocus}
           onBlur={this._onBlur}
           onKeyDown={this._onKeyDown}
         />
+        {!!this.props.errorText && <Text type='BodyError' style={{...errorStyle, ...this.props.errorStyle}}>{this.props.errorText}</Text>}
       </Box>
     )
   }

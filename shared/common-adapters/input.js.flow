@@ -2,36 +2,43 @@
 import {Component} from 'react'
 
 export type Props = $Shape<{
+  blur: () => void,
+  select: () => void,
+  focus: () => void,
+  value?: ?string,
+  errorText?: ?string,
+  hintText?: ?string,
+  floatingHintTextOverride?: ?string,
+  inputStyle?: Object,
+  onChangeText?: (text: string) => void,
+  onEnterKeyDown?: (event: Object) => void,
+  onKeyDown?: (event: Object) => void,
+  style?: Object,
+  hideUnderline: boolean,
+
+
+
+
+
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters',
   autoCorrect?: bool,
   autoFocus?: bool,
   autoGrow?: bool,
-  blur: () => void,
   errorStyle?: ?Object,
   errorStyle?: Object,
-  errorText?: ?string,
-  floatingLabelText?: string,
-  focus: () => void,
-  hintStyle?: Object,
-  hintText?: string,
-  inputStyle?: Object,
+  // underlineShow?: boolean,
+  // floatingLabelText?: string,
+  // hintStyle?: Object,
   iosOmitUnderline?: boolean,
   keyboardType?: 'default' | 'email-address' | 'numeric' | 'phone-pad' | 'ascii-capable' | 'numbers-and-punctuation' | 'url' | 'number-pad' | 'name-phone-pad' | 'decimal-pad' | 'twitter' | 'web-search',
   multiline?: bool,
-  onChange?: (event: Object) => void,
-  onChangeText?: (text: string) => void,
-  onEnterKeyDown?: (event: Object) => void,
-  onKeyDown?: (event: Object) => void,
+  // onChange?: (event: Object) => void,
   rows?: number, // Will be overridden if autoGrow is active
   rowsMax?: number,
-  select: () => void,
   small?: bool,
-  style?: Object,
   textStyle?: Object,
   type?: 'password' | 'text' | 'passwordVisible',
-  underlineShow?: boolean,
-  underlineStyle?: Object,
-  value?: ?string,
+  // underlineStyle?: Object,
 }>
 
 declare export default class Input extends Component<void, Props, void> { }

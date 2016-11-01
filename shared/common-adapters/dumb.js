@@ -419,40 +419,56 @@ const inputMap: DumbComponentMap<Input> = {
     'Default Filled': {
       value: 'Hello, World!',
     },
+    'Default Filled style override': {
+      value: 'Hello, World!',
+      style: {
+        backgroundColor: 'red',
+      },
+    },
+    'Default Filled inputstyle override': {
+      value: 'Hello, World!',
+      inputStyle: {
+        backgroundColor: 'red',
+      },
+    },
+    'Default No underline': {
+      value: 'Hello, World!',
+      hideUnderline: true,
+    },
     'Hint Empty': {
       hintText: 'Hello...',
     },
     'Floating Label Empty': {
-      floatingLabelText: 'Hello...',
+      floatingHintTextOverride: 'Hello...',
     },
     'Floating Label Filled': {
-      floatingLabelText: 'Hello...',
+      floatingHintTextOverride: 'Hello...',
       value: 'Hello, World!',
     },
     'Floating Label Error': {
-      floatingLabelText: 'Hello...',
+      floatingHintTextOverride: 'Hello...',
       value: 'Hello, Worl',
       errorText: 'Check your spelling',
     },
     'Floating Label Hint Empty': {
       hintText: 'Hello!',
-      floatingLabelText: 'Hello...',
+      floatingHintTextOverride: 'Hello...',
     },
     'Hint Multiline Empty': {
-      hintText: 'This is a very long hint that will hopefully wrap to two lines',
+      hintText: 'This is a very long hint that will hopefully wrap to two lines or more more more!',
       multiline: true,
     },
     'Floating Label Multiline Empty': {
-      floatingLabelText: 'Hello...',
+      floatingHintTextOverride: 'Hello...',
       multiline: true,
     },
     'Floating Label Multiline Filled': {
-      floatingLabelText: 'Hello...',
+      floatingHintTextOverride: 'Hello...',
       multiline: true,
       value: 'Hello, World!',
     },
     'Floating Label Multiline Filled Long': {
-      floatingLabelText: 'Hello...',
+      floatingHintTextOverride: 'Hello...',
       multiline: true,
       value: 'Hello,\nMy name is Max\nHow are you?',
     },

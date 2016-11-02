@@ -105,10 +105,13 @@ class Input extends Component<void, Props, State> {
       ...globalStyles.flexBoxColumn,
       maxWidth: 460,
       width: '100%',
+      ...(this.props.multiline ? {minHeight: 80} : null),
     }
 
     const inputStyle = {
       fontSize: headerTextStyle.fontSize,
+      lineHeight: '28px',
+      height: 28,
       width: '100%',
       minWidth: 333,
       border: 'none',
@@ -116,6 +119,15 @@ class Input extends Component<void, Props, State> {
       outlineWidth: 0,
       textAlign: 'center',
     }
+
+    const textareaStyle = {
+      ...inputStyle,
+      height: 'initial',
+      resize: 'none',
+      wrap: 'off',
+    }
+
+    const inputComponentStyle = this.props.multiline ? textareaStyle : inputStyle
 
     const errorStyle = {
       textAlign: 'center',
@@ -127,27 +139,41 @@ class Input extends Component<void, Props, State> {
       minHeight: bodySmallTextStyle.lineHeight,
       color: globalColors.blue,
       display: 'block',
+      marginBottom: 9,
     }
 
     const floatingHintText = (this.state.value && this.state.value.length) &&
       (this.props.floatingHintTextOverride || (this.props.hintText && this.props.hintText) || ' ')
 
+    const inputProps = {
+      onChange: this._onChange,
+      value: this.state.value,
+      style: {...inputComponentStyle, ...this.props.inputStyle},
+      placeholder: this.props.hintText,
+      onFocus: this._onFocus,
+      onBlur: this._onBlur,
+      onKeyDown: this._onKeyDown,
+    }
+
+    const textareaProps = {
+      ...inputProps,
+      contenteditable: true,
+    }
+
+    const inputComponentProps = this.props.multiline ? textareaProps : inputProps
+
     return (
       <Box style={{...style, ...this.props.style}}>
         <Text type='BodySmall' style={floatingStyle}>{floatingHintText}</Text>
-        <input
-          onChange={this._onChange}
-          value={this.state.value}
-          style={{...inputStyle, ...this.props.inputStyle}}
-          placeholder={this.props.hintText}
-          onFocus={this._onFocus}
-          onBlur={this._onBlur}
-          onKeyDown={this._onKeyDown}
-        />
+        {this.props.multiline
+          ? <textarea {...commonProps} />
+          : <input {...inputComponentProps} />}
         {!!this.props.errorText && <Text type='BodyError' style={{...errorStyle, ...this.props.errorStyle}}>{this.props.errorText}</Text>}
       </Box>
     )
   }
+        // {this.props.multiline && <div style={{flex: 1}}/> }
+            // ? <p {...inputComponentProps}></p>
 
   // render () {
     // const style = this.props.small ? styles.containerSmall : styles.container

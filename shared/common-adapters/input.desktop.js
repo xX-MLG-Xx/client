@@ -166,7 +166,7 @@ class Input extends Component<void, Props, State> {
       <Box style={{...style, ...this.props.style}}>
         <Text type='BodySmall' style={floatingStyle}>{floatingHintText}</Text>
         {this.props.multiline
-          ? <textarea {...commonProps} />
+          ? <textarea {...textareaProps} />
           : <input {...inputComponentProps} />}
         {!!this.props.errorText && <Text type='BodyError' style={{...errorStyle, ...this.props.errorStyle}}>{this.props.errorText}</Text>}
       </Box>

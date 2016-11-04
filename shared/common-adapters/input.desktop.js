@@ -9,7 +9,7 @@ import {getStyle} from './text'
 import type {Props} from './input'
 
 type State = {
-  value: ?string,
+  value: string,
   focused: boolean,
 }
 
@@ -21,32 +21,38 @@ class Input extends Component<void, Props, State> {
     super(props)
 
     this.state = {
-      value: props.value,
+      value: props.value || '',
       focused: false,
     }
   }
 
+  componentDidMount () {
+    this._autoResize()
+  }
+
   componentWillReceiveProps (nextProps: Props) {
     if (nextProps.hasOwnProperty('value')) {
-      this.setState({value: nextProps.value})
+      this.setState({value: nextProps.value || ''})
+      this._autoResize()
     }
   }
 
-  getValue (): ?string {
-    return this.state.value
+  getValue (): string {
+    return this.state.value || ''
   }
 
   setValue (value: string) {
-    this.setState({value})
+    this.setState({value: value || ''})
   }
 
   clearValue () {
-    this._onChange({target: {value: null}})
+    this._onChange({target: {value: ''}})
   }
 
   _onChange = (event: {target: {value: ?string}}) => {
-    this.setState({value: event.target.value})
-    this.props.onChange && this.props.onChange(event)
+    this.setState({value: event.target.value || ''})
+    this._autoResize()
+
     this.props.onChangeText && this.props.onChangeText(event.target.value || '')
   }
 
@@ -96,224 +102,148 @@ class Input extends Component<void, Props, State> {
     return this.state.focused ? globalColors.blue : globalColors.black_10
   }
 
-  render () {
-    const headerTextStyle = getTextStyle('Header')
-    const bodySmallTextStyle = getTextStyle('BodySmall')
-    const underlineColor = this._underlineColor()
+  _rowsToHeight (rows) {
+    return rows * _lineHeight +
+      1 // border
+  }
 
-    const style = {
+  _containerStyle (underlineColor) {
+    return this.props.small
+    ? {
+      ...globalStyles.flexBoxRow,
+      borderBottom: `1px solid ${underlineColor}`,
+      flex: 1,
+    }
+    : {
       ...globalStyles.flexBoxColumn,
       maxWidth: 460,
       width: '100%',
-      ...(this.props.multiline ? {minHeight: 80} : null),
+    }
+  }
+
+  render () {
+    const underlineColor = this._underlineColor()
+    const defaultRowsToShow = Math.min(2, this.props.rowsMax || 2)
+    const containerStyle = this._containerStyle(underlineColor)
+
+    const commonInputStyle = {
+      ...globalStyles.fontSemibold,
+      fontSize: _headerTextStyle.fontSize,
+      lineHeight: `${_lineHeight}px`,
+      backgroundColor: globalColors.transparent,
+      flex: 1,
+      border: 'none',
+      outlineWidth: 0,
+      ...(this.props.small
+      ? {textAlign: 'left'}
+      : {
+        textAlign: 'center',
+        minWidth: 333,
+        borderBottom: `1px solid ${underlineColor}`,
+      }),
     }
 
     const inputStyle = {
-      fontSize: headerTextStyle.fontSize,
-      lineHeight: '28px',
+      ...commonInputStyle,
       height: 28,
-      width: '100%',
-      minWidth: 333,
-      border: 'none',
-      borderBottom: `1px solid ${underlineColor}`,
-      outlineWidth: 0,
-      textAlign: 'center',
     }
 
     const textareaStyle = {
-      ...inputStyle,
+      ...commonInputStyle,
       height: 'initial',
       resize: 'none',
       wrap: 'off',
+      paddingTop: 0,
+      paddingBottom: 0,
+      minHeight: this._rowsToHeight(this.props.rowsMin || defaultRowsToShow),
+      ...(this.props.rowsMax
+        ? {maxHeight: this._rowsToHeight(this.props.rowsMax)}
+        : {overflowY: 'hidden'}),
     }
 
-    const inputComponentStyle = this.props.multiline ? textareaStyle : inputStyle
+    const floatingHintText = !!this.state.value.length &&
+      ( this.props.hasOwnProperty('floatingHintTextOverride')
+       ? this.props.floatingHintTextOverride
+       : this.props.hintText || ' ')
 
-    const errorStyle = {
-      textAlign: 'center',
-      width: '100%',
-    }
-
-    const floatingStyle = {
-      textAlign: 'center',
-      minHeight: bodySmallTextStyle.lineHeight,
-      color: globalColors.blue,
-      display: 'block',
-      marginBottom: 9,
-    }
-
-    const floatingHintText = (this.state.value && this.state.value.length) &&
-      (this.props.floatingHintTextOverride || (this.props.hintText && this.props.hintText) || ' ')
-
-    const inputProps = {
-      onChange: this._onChange,
-      value: this.state.value,
-      style: {...inputComponentStyle, ...this.props.inputStyle},
-      placeholder: this.props.hintText,
-      onFocus: this._onFocus,
+    const commonProps = {
+      autoComplete: false,
+      autoFocus: this.props.autoFocus,
       onBlur: this._onBlur,
+      onChange: this._onChange,
+      onFocus: this._onFocus,
       onKeyDown: this._onKeyDown,
+      placeholder: this.props.hintText,
+      ref: r => { this._input = r },
+      value: this.state.value,
     }
 
-    const textareaProps = {
-      ...inputProps,
-      contenteditable: true,
+    const singlelineProps = {
+      ...commonProps,
+      style: {...inputStyle, ...this.props.inputStyle},
+      type: {
+        password: 'password',
+        text: 'text',
+        passwordVisible: 'text',
+      }[this.props.type || 'text'] || 'text',
     }
 
-    const inputComponentProps = this.props.multiline ? textareaProps : inputProps
+    const multilineProps = {
+      ...commonProps,
+      style: {...textareaStyle, ...this.props.inputStyle},
+    }
+
+    const smallLabelStyle = {
+      ...globalStyles.fontSemibold,
+      fontSize: _headerTextStyle.fontSize,
+      lineHeight: `${_lineHeight}px`,
+      marginRight: 8,
+      color: globalColors.blue,
+      ...this.props.smallLabelStyle,
+    }
 
     return (
-      <Box style={{...style, ...this.props.style}}>
-        <Text type='BodySmall' style={floatingStyle}>{floatingHintText}</Text>
+      <Box style={{...containerStyle, ...this.props.style}}>
+        {!this.props.small && <Text type='BodySmall' style={_floatingStyle}>{floatingHintText}</Text>}
+        {!!this.props.small && <Text type='BodySmall' style={smallLabelStyle}>{this.props.smallLabel}</Text>}
         {this.props.multiline
-          ? <textarea {...textareaProps} />
-          : <input {...inputComponentProps} />}
-        {!!this.props.errorText && <Text type='BodyError' style={{...errorStyle, ...this.props.errorStyle}}>{this.props.errorText}</Text>}
+          ? <textarea {...multilineProps} />
+          : <input {...singlelineProps} />}
+        {!!this.props.errorText && !this.props.small && <Text type='BodyError' style={{..._errorStyle, ...this.props.errorStyle}}>{this.props.errorText}</Text>}
       </Box>
     )
   }
-        // {this.props.multiline && <div style={{flex: 1}}/> }
-            // ? <p {...inputComponentProps}></p>
 
-  // render () {
-    // const style = this.props.small ? styles.containerSmall : styles.container
-    // const textStyle = this.props.small ? styles.inputSmall : styles.input
-    // const textHeight = this.props.small ? 32 : (this.props.floatingLabelText ? 79 : 50)
-    // const hintStyle = {bottom: this.props.small ? 11 : (this.props.multiline ? 16 : 14)}
+  _autoResize () {
+    if (!this.props.multiline) {
+      return
+    }
 
-    // // HACK to make this cr*p line up. let's :fire: this whole file soon
-    // if (!this.props.small && !this.props.floatingLabelText && this.props.hintText) {
-      // // $FlowIssue this whole class needs to be cleaned up
-      // hintStyle.bottom = 'initial'
-      // // $FlowIssue this whole class needs to be cleaned up
-      // hintStyle.top = 7
-    // }
-    // if (!this.props.small && this.props.floatingLabelText && this.props.hintText) {
-      // // $FlowIssue this whole class needs to be cleaned up
-      // hintStyle.top = 32
-    // }
+    const node = this._inputNode()
+    if (!node) {
+      return
+    }
 
-    // // HACK: We can't reset the text area style, so we need to counteract it by moving the wrapper up
-    // const multilineStyleFix = {
-      // height: 'auto',
-      // position: 'relative',
-      // // Other HACK: having a floating label affects position, but only in multiline
-      // bottom: (this.props.floatingLabelText ? 30 : 6),
-      // // tweak distance between entered text and floating label to match single-line
-      // marginTop: 1,
-      // // tweak distance between entered text and underline to match single-line
-      // marginBottom: -2,
-    // }
-    // const inputStyle = this.props.multiline ? multilineStyleFix : {height: 'auto', top: 3}
-    // const alignStyle = this.props.style && this.props.style.textAlign ? {textAlign: this.props.style.textAlign} : {textAlign: 'center'}
-
-    // const passwordVisible = this.props.type === 'passwordVisible'
-    // const password = this.props.type === 'password'
-
-    // return (
-      // <div style={{...style, ...this.props.style}} onClick={() => { this._textField && this._textField.focus() }}>
-        // <TextField
-          // autoComplete={(passwordVisible || password) ? 'off' : undefined}
-          // autoFocus={this.props.autoFocus}
-          // errorStyle={{...styles.errorStyle, ...this.props.errorStyle}}
-          // errorText={this.props.errorText}
-          // floatingLabelFocusStyle={styles.floatingLabelFocusStyle}
-          // floatingLabelStyle={styles.floatingLabelStyle}
-          // floatingLabelText={this.props.small ? undefined : this.props.floatingLabelText}
-          // fullWidth={true}
-          // hintStyle={{...hintStyle, ...styles.hintStyle, ...this.props.hintStyle}}
-          // hintText={this.props.hintText}
-          // inputStyle={{...(this.props.small ? {} : {marginTop: 4}), ...inputStyle, ...alignStyle, ...this.props.inputStyle}}
-          // textareaStyle={{...alignStyle, overflow: 'overlay'}}
-          // name='name'
-          // multiLine={this.props.multiline}
-          // onBlur={() => this.setState({focused: false})}
-          // onChange={event => this.onChange(event)}
-          // onFocus={() => this.setState({focused: true})}
-          // onKeyDown={e => this._onKeyDown(e)}
-          // ref={textField => (this._textField = textField)}
-          // rows={this.props.rows}
-          // rowsMax={this.props.rowsMax}
-          // style={{...textStyle, height: textHeight, transition: 'none', ...globalStyles.flexBoxColumn, ...this.props.textStyle}}
-          // type={password ? 'password' : 'text'}
-          // underlineFocusStyle={{...styles.underlineFocusStyle, ...this.props.underlineStyle}}
-          // underlineShow={this.props.underlineShow}
-          // underlineStyle={{...styles.underlineStyle, ...this.props.underlineStyle}}
-          // value={this.state.value || ''}
-          // />
-      // </div>
-    // )
-  // }
+    node.style.height = 'auto'
+    node.style.height = `${node.scrollHeight}px`
+  }
 }
 
-// export const styles = {
-  // container: {
-    // marginBottom: 8,
-  // },
-  // containerSmall: {
-    // margin: 0,
-    // marginTop: 2,
-  // },
-  // input: {
-    // ...getStyle('Header', 'Normal'),
-    // color: globalColors.black_10,
-  // },
-  // inputSmall: {
-    // ...getStyle('BodySmall', 'Normal'),
-    // color: globalColors.black_10,
-    // lineHeight: '16px',
-  // },
-  // underlineFocusStyle: {
-    // marginTop: 4,
-    // borderColor: globalColors.blue,
-    // borderBottom: 'solid 1px',
-    // transition: '',
-  // },
-  // underlineStyle: {
-    // borderColor: globalColors.black_10,
-    // bottom: 'auto',
-    // marginTop: 4,
-  // },
-  // errorStyle: {
-    // ...globalStyles.fontRegular,
-    // color: globalColors.red,
-    // alignSelf: 'center',
-    // fontSize: 13,
-    // lineHeight: '17px',
-    // position: 'initial',
-    // marginTop: 4,
-    // paddingTop: 4,
-  // },
-  // hintStyle: {
-    // ...globalStyles.fontSemibold,
-    // color: globalColors.black_10,
-    // width: '100%',
-    // textAlign: 'center',
-    // whiteSpace: 'nowrap',
-    // overflow: 'hidden',
-    // textOverflow: 'ellipsis',
-  // },
-  // floatingLabelStyle: {
-    // ...globalStyles.fontSemibold,
-    // alignSelf: 'center',
-    // color: globalColors.black_10,
-    // fontSize: 16,
-    // lineHeight: '29px',
-    // position: 'inherit',
-    // top: 30,
-    // transform: 'scale(1) translate3d(0, 0, 0)',
-    // transition: 'color 450ms cubic-bezier(0.23, 1, 0.32, 1) 0ms',
-  // },
-  // floatingLabelFocusStyle: {
-    // ...globalStyles.fontSemibold,
-    // alignSelf: 'center',
-    // color: globalColors.blue,
-    // fontSize: 11,
-    // lineHeight: '29px',
-    // position: 'inherit',
-    // transform: 'perspective(1px) scale(1) translate3d(2px, -26px, 0)',
-    // transformOrigin: 'center top',
-  // },
-// }
+const _lineHeight = 28
+const _headerTextStyle = getTextStyle('Header')
+const _bodySmallTextStyle = getTextStyle('BodySmall')
+
+const _errorStyle = {
+  textAlign: 'center',
+  width: '100%',
+}
+
+const _floatingStyle = {
+  textAlign: 'center',
+  minHeight: _bodySmallTextStyle.lineHeight,
+  color: globalColors.blue,
+  display: 'block',
+  marginBottom: 9,
+}
 
 export default Input

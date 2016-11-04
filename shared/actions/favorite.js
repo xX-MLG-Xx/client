@@ -4,9 +4,9 @@ import _ from 'lodash'
 import {NotifyPopup} from '../native/notifications'
 import {apiserverGetRpcPromise, favoriteFavoriteAddRpcPromise, favoriteFavoriteIgnoreRpcPromise} from '../constants/types/flow-types'
 import {badgeApp} from './notifications'
-import {navigateBack} from '../actions/router'
 import {call, put, select} from 'redux-saga/effects'
-import {takeLatest, takeEvery} from 'redux-saga'
+import {navigateBack} from '../actions/router'
+import {safeTakeLatest, safeTakeEvery} from '../util/saga'
 
 import type {Action} from '../constants/types/flux'
 import type {FavoriteAdd, FavoriteAdded, FavoriteList, FavoriteListed, FavoriteIgnore, FavoriteIgnored, FolderState, FavoriteSwitchTab, FavoriteToggleIgnored, MarkTLFCreated} from '../constants/favorite'
@@ -264,9 +264,9 @@ function _notify (state) {
 
 function * favoriteSaga (): SagaGenerator<any, any> {
   yield [
-    takeLatest(Constants.favoriteList, _listSaga),
-    takeEvery(Constants.favoriteAdd, _addSaga),
-    takeEvery(Constants.favoriteIgnore, _ignoreSaga),
+    safeTakeLatest(Constants.favoriteList, _listSaga),
+    safeTakeEvery(Constants.favoriteAdd, _addSaga),
+    safeTakeEvery(Constants.favoriteIgnore, _ignoreSaga),
   ]
 }
 

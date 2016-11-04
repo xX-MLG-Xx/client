@@ -6,7 +6,6 @@ export type Props = $Shape<{
   select: () => void,
   focus: () => void,
   value?: ?string,
-  errorText?: ?string,
   hintText?: ?string,
   floatingHintTextOverride?: ?string,
   inputStyle?: Object,
@@ -15,30 +14,21 @@ export type Props = $Shape<{
   onKeyDown?: (event: Object) => void,
   style?: Object,
   hideUnderline: boolean,
+  rowsMax?: number,
+  rowsMin?: number,
+  type?: 'password' | 'text' | 'passwordVisible',
+  autoFocus?: bool,
+  multiline?: bool,
+  errorText?: ?string,
+  errorStyle?: ?Object,
+  small?: bool,
+  smallLabel?: string,
+  smallLabelStyle?: ?Object,
 
-
-
-
-
+  // Mobile only
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters',
   autoCorrect?: bool,
-  autoFocus?: bool,
-  autoGrow?: bool,
-  errorStyle?: ?Object,
-  errorStyle?: Object,
-  // underlineShow?: boolean,
-  // floatingLabelText?: string,
-  // hintStyle?: Object,
-  iosOmitUnderline?: boolean,
   keyboardType?: 'default' | 'email-address' | 'numeric' | 'phone-pad' | 'ascii-capable' | 'numbers-and-punctuation' | 'url' | 'number-pad' | 'name-phone-pad' | 'decimal-pad' | 'twitter' | 'web-search',
-  multiline?: bool,
-  // onChange?: (event: Object) => void,
-  rows?: number, // Will be overridden if autoGrow is active
-  rowsMax?: number,
-  small?: bool,
-  textStyle?: Object,
-  type?: 'password' | 'text' | 'passwordVisible',
-  // underlineStyle?: Object,
 }>
 
 declare export default class Input extends Component<void, Props, void> { }

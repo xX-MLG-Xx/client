@@ -4,11 +4,10 @@ import HiddenString from '../util/hidden-string'
 import {Map, is} from 'immutable'
 import {devicesTab, loginTab} from '../constants/tabs'
 
-import {navigateTo, navigateUp, switchTab} from './router'
-import {setRevokedSelf} from './login'
-import {takeEvery, takeLatest} from 'redux-saga'
 import {call, put, select, fork} from 'redux-saga/effects'
-import {singleFixedChannelConfig, closeChannelMap, takeFromChannelMap, effectOnChannelMap} from '../util/saga'
+import {navigateTo, navigateUp, switchTab} from './router'
+import {safeTakeEvery, safeTakeLatest, singleFixedChannelConfig, closeChannelMap, takeFromChannelMap, effectOnChannelMap} from '../util/saga'
+import {setRevokedSelf} from './login'
 import {
   deviceDeviceHistoryListRpcPromise,
   loginDeprovisionRpcPromise,
@@ -173,9 +172,9 @@ function * _devicePaperKeySaga (): SagaGenerator<any, any> {
 
 function * deviceSaga (): SagaGenerator<any, any> {
   yield [
-    takeLatest(Constants.loadDevices, _deviceListSaga),
-    takeEvery(Constants.removeDevice, _deviceRemoveSaga),
-    takeEvery(Constants.generatePaperKey, _devicePaperKeySaga),
+    safeTakeLatest(Constants.loadDevices, _deviceListSaga),
+    safeTakeEvery(Constants.removeDevice, _deviceRemoveSaga),
+    safeTakeEvery(Constants.generatePaperKey, _devicePaperKeySaga),
   ]
 }
 

@@ -17,11 +17,8 @@ class Conversation extends Component<void, Props, void> {
       <Box style={{...globalStyles.flexBoxRow, minHeight: 48, borderTop: `solid 1px ${globalColors.black_05}`}}>
         <Input
           small={true}
-          style={{flex: 1, textAlign: 'left'}}
-          hintStyle={{textAlign: 'left'}}
           ref={this._setRef}
           hintText={`Write to ${this.props.participants.join(', ')}`}
-          underlineShow={false}
           onEnterKeyDown={() => {
             this.props.onPostMessage(this._input.getValue())
             this._input.clearValue()

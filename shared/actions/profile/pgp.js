@@ -5,7 +5,7 @@ import {singleFixedChannelConfig, closeChannelMap, takeFromChannelMap} from '../
 import {isValidEmail, isValidName} from '../../util/simple-validators'
 import {navigateTo, routeAppend} from '../../actions/router'
 import {pgpPgpKeyGenDefaultRpcChannelMap, revokeRevokeKeyRpcPromise} from '../../constants/types/flow-types'
-import {takeLatest, takeEvery} from 'redux-saga'
+import {safeTakeLatest, safeTakeEvery} from '../../util/saga'
 
 import type {KID} from '../../constants/types/flow-types'
 import type {SagaGenerator, ChannelConfig, ChannelMap} from '../../constants/types/saga'
@@ -175,9 +175,9 @@ function * _generatePgpSaga (): SagaGenerator<any, any> {
 
 function * pgpSaga (): SagaGenerator<any, any> {
   yield [
-    takeLatest(a => (a && a.type === Constants.updatePgpInfo && !a.error), _checkPgpInfo),
-    takeLatest(Constants.generatePgp, _generatePgpSaga),
-    takeEvery(Constants.dropPgp, _dropPgpSaga),
+    safeTakeLatest(a => (a && a.type === Constants.updatePgpInfo && !a.error), _checkPgpInfo),
+    safeTakeLatest(Constants.generatePgp, _generatePgpSaga),
+    safeTakeEvery(Constants.dropPgp, _dropPgpSaga),
   ]
 }
 

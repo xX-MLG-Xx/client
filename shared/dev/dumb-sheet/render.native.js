@@ -3,7 +3,7 @@ import React, {Component} from 'react'
 import debounce from 'lodash/debounce'
 import dumbComponentMap from './component-map.native'
 import type {Props} from './render'
-import {Box, Text, SmallInput, Button, NativeScrollView, Icon} from '../../common-adapters/index.native'
+import {Box, Text, Input, Button, NativeScrollView, Icon} from '../../common-adapters/index.native'
 import {globalStyles, globalColors} from '../../styles'
 
 class DumbSheetRender extends Component<void, Props, any> {
@@ -133,22 +133,20 @@ class DumbSheetRender extends Component<void, Props, any> {
     return (
       <Box style={{...globalStyles.flexBoxColumn, flex: 1}}>
         <Box style={stylesControls}>
-          <SmallInput
-            label='Filter:'
+          <Input
+            small={true}
+            smallLabel='Filter:'
             style={inputStyle}
-            onChange={filter => this._onFilterChange(filter.toLowerCase())}
-            hintText=''
+            onChangeText={filter => this._onFilterChange(filter.toLowerCase())}
             autoCapitalize='none'
             value={this.state.localFilter} />
           <Button type='Primary' style={stylesButton} label='-' onClick={() => { this._incremement(false) }} />
-          <SmallInput
-            label=''
+          <Input
             style={{width: 50}}
             value={String(this.props.dumbIndex)}
-            onChange={filter => this.props.onDebugConfigChange({
+            onChangeText={filter => this.props.onDebugConfigChange({
               dumbIndex: parseInt(filter, 10) || 0,
             })}
-            hintText=''
             autoCapitalize='none'
           />
           <Button type='Primary' style={stylesButton} label='+' onClick={() => { this._incremement(true) }} />
@@ -182,11 +180,6 @@ const styleBox = {
 }
 
 const inputStyle = {
-  marginLeft: 10,
-  marginRight: 10,
-  flex: 1,
-  backgroundColor: '#eeeeee',
-  borderWidth: 1,
 }
 
 const stylesControls = {

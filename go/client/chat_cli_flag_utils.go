@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/keybase/cli"
+	"github.com/keybase/client/go/libkb"
 	"github.com/keybase/client/go/protocol/chat1"
 )
 
@@ -77,6 +78,18 @@ var chatFlags = map[string]cli.Flag{
 		Name:  "nonblock",
 		Usage: `Send message without success confirmation`,
 	},
+	"all": cli.BoolFlag{
+		Name:  "all",
+		Usage: `Include hidden conversations`,
+	},
+	"block": cli.BoolFlag{
+		Name:  "b, block",
+		Usage: "Block the conversation (instead of hiding until next activity)",
+	},
+	"unhide": cli.BoolFlag{
+		Name:  "u, unhide",
+		Usage: "Unhide/unblock the conversation",
+	},
 }
 
 func mustGetChatFlags(keys ...string) (flags []cli.Flag) {
@@ -103,7 +116,7 @@ func getInboxFetcherUnreadFirstFlags() []cli.Flag {
 }
 
 func getInboxFetcherActivitySortedFlags() []cli.Flag {
-	return append(mustGetChatFlags("number", "since"), getConversationResolverFlags()...)
+	return append(mustGetChatFlags("number", "since", "all"), getConversationResolverFlags()...)
 }
 
 func parseConversationTopicType(ctx *cli.Context) (topicType chat1.TopicType, err error) {
@@ -113,28 +126,28 @@ func parseConversationTopicType(ctx *cli.Context) (topicType chat1.TopicType, er
 	case "dev":
 		topicType = chat1.TopicType_DEV
 	default:
-		err = fmt.Errorf("invalid topic-type %s. Has to be one of %v", t, []string{"chat", "dev"})
+		err = fmt.Errorf("invalid topic-type '%s'. Has to be one of %v", t, []string{"chat", "dev"})
 	}
 	return topicType, err
 }
 
-func parseConversationResolver(ctx *cli.Context, tlfName string) (resolver chatCLIConversationResolver, err error) {
-	resolver.TopicName = ctx.String("topic-name")
-	resolver.TlfName = tlfName
-	if resolver.TopicType, err = parseConversationTopicType(ctx); err != nil {
-		return chatCLIConversationResolver{}, err
+func parseConversationResolvingRequest(ctx *cli.Context, tlfName string) (req chatConversationResolvingRequest, err error) {
+	req.TopicName = ctx.String("topic-name")
+	req.TlfName = tlfName
+	if req.TopicType, err = parseConversationTopicType(ctx); err != nil {
+		return chatConversationResolvingRequest{}, err
 	}
-	if resolver.TopicType == chat1.TopicType_CHAT && len(resolver.TopicName) != 0 {
-		return chatCLIConversationResolver{}, errors.New("multiple topics are not yet supported")
+	if req.TopicType == chat1.TopicType_CHAT && len(req.TopicName) != 0 {
+		return chatConversationResolvingRequest{}, errors.New("multiple topics are not yet supported")
 	}
 	if ctx.Bool("private") {
-		resolver.Visibility = chat1.TLFVisibility_PRIVATE
+		req.Visibility = chat1.TLFVisibility_PRIVATE
 	} else if ctx.Bool("public") {
-		resolver.Visibility = chat1.TLFVisibility_PUBLIC
+		req.Visibility = chat1.TLFVisibility_PUBLIC
 	} else {
-		resolver.Visibility = chat1.TLFVisibility_ANY
+		req.Visibility = chat1.TLFVisibility_ANY
 	}
-	return resolver, nil
+	return req, nil
 }
 
 func makeChatCLIConversationFetcher(ctx *cli.Context, tlfName string, markAsRead bool) (fetcher chatCLIConversationFetcher, err error) {
@@ -154,7 +167,7 @@ func makeChatCLIConversationFetcher(ctx *cli.Context, tlfName string, markAsRead
 
 	fetcher.query.MarkAsRead = markAsRead
 
-	if fetcher.resolver, err = parseConversationResolver(ctx, tlfName); err != nil {
+	if fetcher.resolvingRequest, err = parseConversationResolvingRequest(ctx, tlfName); err != nil {
 		return chatCLIConversationFetcher{}, err
 	}
 
@@ -176,6 +189,10 @@ func makeChatCLIInboxFetcherActivitySorted(ctx *cli.Context) (fetcher chatCLIInb
 		fetcher.query.Visibility = chat1.TLFVisibility_PUBLIC
 	} else {
 		fetcher.query.Visibility = chat1.TLFVisibility_ANY
+	}
+
+	if !ctx.Bool("all") {
+		fetcher.query.Status = libkb.VisibleChatConversationStatuses()
 	}
 
 	return fetcher, err
@@ -200,6 +217,10 @@ func makeChatCLIInboxFetcherUnreadFirst(ctx *cli.Context) (fetcher chatCLIInboxF
 		fetcher.query.Visibility = chat1.TLFVisibility_PUBLIC
 	} else {
 		fetcher.query.Visibility = chat1.TLFVisibility_ANY
+	}
+
+	if !ctx.Bool("all") {
+		fetcher.query.Status = libkb.VisibleChatConversationStatuses()
 	}
 
 	return fetcher, err

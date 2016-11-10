@@ -15,13 +15,14 @@ import (
 )
 
 const (
-	methodList     = "list"
-	methodRead     = "read"
-	methodSend     = "send"
-	methodEdit     = "edit"
-	methodDelete   = "delete"
-	methodAttach   = "attach"
-	methodDownload = "download"
+	methodList      = "list"
+	methodRead      = "read"
+	methodSend      = "send"
+	methodEdit      = "edit"
+	methodDelete    = "delete"
+	methodAttach    = "attach"
+	methodDownload  = "download"
+	methodSetStatus = "setstatus"
 )
 
 // ErrInvalidOptions is returned when the options aren't valid.
@@ -84,6 +85,7 @@ type ChatAPIHandler interface {
 	DeleteV1(context.Context, Call, io.Writer) error
 	AttachV1(context.Context, Call, io.Writer) error
 	DownloadV1(context.Context, Call, io.Writer) error
+	SetStatusV1(context.Context, Call, io.Writer) error
 }
 
 // ChatAPI implements ChatAPIHandler and contains a ChatServiceHandler
@@ -106,19 +108,6 @@ func (c ChatChannel) Valid() bool {
 	return len(c.Name) > 0
 }
 
-// TopicTypeEnum returns the chat1.TopicType from the TopicType string field.
-func (c ChatChannel) TopicTypeEnum() chat1.TopicType {
-	if len(c.TopicType) == 0 {
-		return chat1.TopicType_CHAT
-	}
-	tt, ok := chat1.TopicTypeMap[strings.ToUpper(c.TopicType)]
-	if ok {
-		return tt
-	}
-
-	return chat1.TopicType_NONE
-}
-
 // ChatMessage represents a text message to be sent.
 type ChatMessage struct {
 	Body string
@@ -127,6 +116,18 @@ type ChatMessage struct {
 // Valid returns true if the message has a body.
 func (c ChatMessage) Valid() bool {
 	return len(c.Body) > 0
+}
+
+type listOptionsV1 struct {
+	TopicType string `json:"topic_type,omitempty"`
+}
+
+func (l listOptionsV1) Check() error {
+	_, err := TopicTypeFromStrDefault(l.TopicType)
+	if err != nil {
+		return ErrInvalidOptions{version: 1, method: methodList, err: err}
+	}
+	return nil
 }
 
 type sendOptionsV1 struct {
@@ -202,6 +203,7 @@ type attachOptionsV1 struct {
 	ConversationID string `json:"conversation_id"`
 	Filename       string
 	Preview        string
+	Title          string
 }
 
 func (a attachOptionsV1) Check() error {
@@ -236,12 +238,38 @@ func (a downloadOptionsV1) Check() error {
 	return nil
 }
 
-func (a *ChatAPI) ListV1(ctx context.Context, c Call, w io.Writer) error {
-	if len(c.Params.Options) != 0 {
-		return ErrInvalidOptions{version: 1, method: methodList, err: errors.New("unexpected options, should be empty")}
+type setStatusOptionsV1 struct {
+	Channel        ChatChannel
+	ConversationID string `json:"conversation_id"`
+	Status         string `json:"status"`
+}
+
+func (o setStatusOptionsV1) Check() error {
+	if err := checkChannelConv(methodDownload, o.Channel, o.ConversationID); err != nil {
+		return err
+	}
+	if _, ok := chat1.ConversationStatusMap[strings.ToUpper(o.Status)]; !ok {
+		return ErrInvalidOptions{version: 1, method: methodSetStatus, err: fmt.Errorf("unsupported status: '%v'", o.Status)}
 	}
 
-	return a.encodeReply(c, a.svcHandler.ListV1(ctx), w)
+	return nil
+}
+
+func (a *ChatAPI) ListV1(ctx context.Context, c Call, w io.Writer) error {
+	var opts listOptionsV1
+	// Options are optional for list
+	if len(c.Params.Options) != 0 {
+		if err := json.Unmarshal(c.Params.Options, &opts); err != nil {
+			return err
+		}
+	}
+	if err := opts.Check(); err != nil {
+		return err
+	}
+
+	// opts are valid for list v1
+
+	return a.encodeReply(c, a.svcHandler.ListV1(ctx, opts), w)
 }
 
 func (a *ChatAPI) ReadV1(ctx context.Context, c Call, w io.Writer) error {
@@ -344,6 +372,23 @@ func (a *ChatAPI) DownloadV1(ctx context.Context, c Call, w io.Writer) error {
 	// opts are valid for download v1
 
 	return a.encodeReply(c, a.svcHandler.DownloadV1(ctx, opts), w)
+}
+
+func (a *ChatAPI) SetStatusV1(ctx context.Context, c Call, w io.Writer) error {
+	if len(c.Params.Options) == 0 {
+		return ErrInvalidOptions{version: 1, method: methodDownload, err: errors.New("empty options")}
+	}
+	var opts setStatusOptionsV1
+	if err := json.Unmarshal(c.Params.Options, &opts); err != nil {
+		return err
+	}
+	if err := opts.Check(); err != nil {
+		return err
+	}
+
+	// opts are valid for setstatus v1
+
+	return a.encodeReply(c, a.svcHandler.SetStatusV1(ctx, opts), w)
 }
 
 func (a *ChatAPI) encodeReply(call Call, reply Reply, w io.Writer) error {

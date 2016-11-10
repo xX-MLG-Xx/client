@@ -15,13 +15,14 @@ import (
 
 // ChatServiceHandler can call the service.
 type ChatServiceHandler interface {
-	ListV1(context.Context) Reply
+	ListV1(context.Context, listOptionsV1) Reply
 	ReadV1(context.Context, readOptionsV1) Reply
 	SendV1(context.Context, sendOptionsV1) Reply
 	EditV1(context.Context, editOptionsV1) Reply
 	DeleteV1(context.Context, deleteOptionsV1) Reply
 	AttachV1(context.Context, attachOptionsV1) Reply
 	DownloadV1(context.Context, downloadOptionsV1) Reply
+	SetStatusV1(context.Context, setStatusOptionsV1) Reply
 }
 
 // chatServiceHandler implements ChatServiceHandler.
@@ -36,14 +37,24 @@ func newChatServiceHandler(g *libkb.GlobalContext) *chatServiceHandler {
 }
 
 // ListV1 implements ChatServiceHandler.ListV1.
-func (c *chatServiceHandler) ListV1(ctx context.Context) Reply {
+func (c *chatServiceHandler) ListV1(ctx context.Context, opts listOptionsV1) Reply {
 	var rlimits []chat1.RateLimit
 	client, err := GetChatLocalClient(c.G())
 	if err != nil {
 		return c.errReply(err)
 	}
 
-	inbox, err := client.GetInboxLocal(ctx, chat1.GetInboxLocalArg{})
+	topicType, err := TopicTypeFromStrDefault(opts.TopicType)
+	if err != nil {
+		return c.errReply(err)
+	}
+
+	inbox, err := client.GetInboxLocal(ctx, chat1.GetInboxLocalArg{
+		Query: &chat1.GetInboxLocalQuery{
+			Status:    libkb.VisibleChatConversationStatuses(),
+			TopicType: &topicType,
+		},
+	})
 	if err != nil {
 		return c.errReply(err)
 	}
@@ -81,33 +92,9 @@ func (c *chatServiceHandler) ReadV1(ctx context.Context, opts readOptionsV1) Rep
 		return c.errReply(err)
 	}
 
-	var convID chat1.ConversationID
-	if len(opts.ConversationID) == 0 {
-		// resolve conversation id
-		query, err := c.getInboxLocalQuery(ctx, chat1.ConversationID{}, opts.Channel)
-		if err != nil {
-			return c.errReply(err)
-		}
-		gilres, err := client.GetInboxLocal(ctx, chat1.GetInboxLocalArg{
-			Query: &query,
-		})
-		if err != nil {
-			return c.errReply(err)
-		}
-		rlimits = append(rlimits, gilres.RateLimits...)
-		existing := gilres.ConversationsUnverified
-		if len(existing) > 1 {
-			return c.errReply(fmt.Errorf("multiple conversations matched %q", opts.Channel.Name))
-		}
-		if len(existing) == 0 {
-			return c.errReply(fmt.Errorf("no conversations matched %q", opts.Channel.Name))
-		}
-		convID = existing[0].Metadata.ConversationID
-	} else {
-		convID, err = chat1.MakeConvID(opts.ConversationID)
-		if err != nil {
-			return c.errReply(fmt.Errorf("invalid conversation ID: %s", opts.ConversationID))
-		}
+	convID, rlimits, err := c.resolveAPIConvID(ctx, opts.ConversationID, opts.Channel)
+	if err != nil {
+		return c.errReply(err)
 	}
 
 	arg := chat1.GetThreadLocalArg{
@@ -263,6 +250,7 @@ func (c *chatServiceHandler) AttachV1(ctx context.Context, opts attachOptionsV1)
 			Size:     int(info.Size()),
 			Source:   src,
 		},
+		Title: opts.Title,
 	}
 
 	// check for preview
@@ -340,34 +328,9 @@ func (c *chatServiceHandler) DownloadV1(ctx context.Context, opts downloadOption
 		return c.errReply(err)
 	}
 
-	var rlimits []chat1.RateLimit
-	var convID chat1.ConversationID
-	if len(opts.ConversationID) == 0 {
-		// resolve conversation id
-		query, err := c.getInboxLocalQuery(ctx, chat1.ConversationID{}, opts.Channel)
-		if err != nil {
-			return c.errReply(err)
-		}
-		gilres, err := client.GetInboxLocal(ctx, chat1.GetInboxLocalArg{
-			Query: &query,
-		})
-		if err != nil {
-			return c.errReply(err)
-		}
-		rlimits = append(rlimits, gilres.RateLimits...)
-		existing := gilres.ConversationsUnverified
-		if len(existing) > 1 {
-			return c.errReply(fmt.Errorf("multiple conversations matched %q", opts.Channel.Name))
-		}
-		if len(existing) == 0 {
-			return c.errReply(fmt.Errorf("no conversations matched %q", opts.Channel.Name))
-		}
-		convID = existing[0].Metadata.ConversationID
-	} else {
-		convID, err = chat1.MakeConvID(opts.ConversationID)
-		if err != nil {
-			return c.errReply(fmt.Errorf("invalid conversation id: %s", opts.ConversationID))
-		}
+	convID, rlimits, err := c.resolveAPIConvID(ctx, opts.ConversationID, opts.Channel)
+	if err != nil {
+		return c.errReply(err)
 	}
 
 	arg := chat1.DownloadAttachmentLocalArg{
@@ -393,6 +356,43 @@ func (c *chatServiceHandler) DownloadV1(ctx context.Context, opts downloadOption
 	return Reply{Result: res}
 }
 
+// SetStatusV1 implements ChatServiceHandler.SetStatusV1.
+func (c *chatServiceHandler) SetStatusV1(ctx context.Context, opts setStatusOptionsV1) Reply {
+	var rlimits []chat1.RateLimit
+
+	// Unverified convID is ok here because status is completely server controlled anyway.
+	convID, rlimits, err := c.resolveAPIConvID(ctx, opts.ConversationID, opts.Channel)
+	if err != nil {
+		return c.errReply(err)
+	}
+	status, ok := chat1.ConversationStatusMap[strings.ToUpper(opts.Status)]
+	if !ok {
+		return c.errReply(fmt.Errorf("unsupported status: '%v'", opts.Status))
+	}
+
+	setStatusArg := chat1.SetConversationStatusLocalArg{
+		ConversationID: convID,
+		Status:         status,
+	}
+
+	client, err := GetChatLocalClient(c.G())
+	if err != nil {
+		return c.errReply(err)
+	}
+	localRes, err := client.SetConversationStatusLocal(ctx, setStatusArg)
+	if err != nil {
+		return c.errReply(err)
+	}
+	rlimits = append(rlimits, localRes.RateLimits...)
+
+	res := EmptyRes{
+		RateLimits: RateLimits{
+			c.aggRateLimits(rlimits),
+		},
+	}
+	return Reply{Result: res}
+}
+
 type sendArgV1 struct {
 	// convQuery  chat1.GetInboxLocalQuery
 	conversationID chat1.ConversationID
@@ -408,6 +408,7 @@ func (c *chatServiceHandler) sendV1(ctx context.Context, arg sendArgV1) Reply {
 	if err != nil {
 		return c.errReply(err)
 	}
+
 	header, err := c.makePostHeader(ctx, arg, query)
 	if err != nil {
 		return c.errReply(err)
@@ -453,7 +454,7 @@ func (c *chatServiceHandler) makePostHeader(ctx context.Context, arg sendArgV1, 
 	}
 
 	// find the conversation
-	gilres, err := client.GetInboxLocal(ctx, chat1.GetInboxLocalArg{Query: &query})
+	gilres, err := client.GetInboxAndUnboxLocal(ctx, chat1.GetInboxAndUnboxLocalArg{Query: &query})
 	if err != nil {
 		c.G().Log.Warning("GetInboxLocal error: %s", err)
 		return nil, err
@@ -462,7 +463,7 @@ func (c *chatServiceHandler) makePostHeader(ctx context.Context, arg sendArgV1, 
 	header.rateLimits = append(header.rateLimits, gilres.RateLimits...)
 
 	var convTriple chat1.ConversationIDTriple
-	existing := gilres.ConversationsUnverified
+	existing := gilres.Conversations
 	switch len(existing) {
 	case 0:
 		ncres, err := client.NewConversationLocal(ctx, chat1.NewConversationLocalArg{
@@ -477,7 +478,7 @@ func (c *chatServiceHandler) makePostHeader(ctx context.Context, arg sendArgV1, 
 		header.rateLimits = append(header.rateLimits, ncres.RateLimits...)
 		convTriple, header.conversationID = ncres.Conv.Info.Triple, ncres.Conv.Info.Id
 	case 1:
-		convTriple, header.conversationID = existing[0].Metadata.IdTriple, existing[0].Metadata.ConversationID
+		convTriple, header.conversationID = existing[0].Info.Triple, existing[0].Info.Id
 	default:
 		return nil, fmt.Errorf("multiple conversations matched")
 	}
@@ -527,7 +528,10 @@ func (c *chatServiceHandler) getInboxLocalQuery(ctx context.Context, id chat1.Co
 	if channel.Public {
 		vis = chat1.TLFVisibility_PUBLIC
 	}
-	tt := channel.TopicTypeEnum()
+	tt, err := TopicTypeFromStrDefault(channel.TopicType)
+	if err != nil {
+		return chat1.GetInboxLocalQuery{}, err
+	}
 	return chat1.GetInboxLocalQuery{
 		TlfName:       &tlfName,
 		TlfVisibility: &vis,
@@ -588,6 +592,63 @@ func (c *chatServiceHandler) aggRateLimits(rlimits []chat1.RateLimit) (res []Rat
 	return res
 }
 
+// Resolve the ConvID of the specified conversation.
+// Prefers using ChatChannel but if it is blank (default-valued) then uses ConvIDStr.
+// Uses tlfclient and GetInboxAndUnboxLocal's ConversationsUnverified.
+func (c *chatServiceHandler) resolveAPIConvID(ctx context.Context, convIDStr string, channel ChatChannel) (chat1.ConversationID, []chat1.RateLimit, error) {
+	var convID chat1.ConversationID
+	var rlimits []chat1.RateLimit
+
+	if (channel == ChatChannel{}) && len(convIDStr) == 0 {
+		return convID, rlimits, fmt.Errorf("missing conversation specificer")
+	}
+
+	if channel == (ChatChannel{}) {
+		// Use ConvID as a fallback if channel is blank.
+		// Support for API usage of ConvIDs is scheduled for termination.
+		convID, err := chat1.MakeConvID(convIDStr)
+		if err != nil {
+			return convID, rlimits, fmt.Errorf("invalid conversation ID: %s", convIDStr)
+		}
+	}
+
+	client, err := GetChatLocalClient(c.G())
+	if err != nil {
+		return convID, rlimits, err
+	}
+	query, err := c.getInboxLocalQuery(ctx, chat1.ConversationID{}, channel)
+	if err != nil {
+		return convID, rlimits, err
+	}
+	gilres, err := client.GetInboxAndUnboxLocal(ctx, chat1.GetInboxAndUnboxLocalArg{
+		Query: &query,
+	})
+	if err != nil {
+		return convID, rlimits, err
+	}
+	rlimits = append(rlimits, gilres.RateLimits...)
+	existing := gilres.Conversations
+	if len(existing) > 1 {
+		return convID, rlimits, fmt.Errorf("multiple conversations matched %q", channel.Name)
+	}
+	if len(existing) == 0 {
+		return convID, rlimits, fmt.Errorf("no conversations matched %q", channel.Name)
+	}
+	convID = existing[0].Info.Id
+	return convID, rlimits, nil
+}
+
+func TopicTypeFromStrDefault(str string) (chat1.TopicType, error) {
+	if len(str) == 0 {
+		return chat1.TopicType_CHAT, nil
+	}
+	tt, ok := chat1.TopicTypeMap[strings.ToUpper(str)]
+	if !ok {
+		return chat1.TopicType_NONE, fmt.Errorf("invalid topic type: '%v'", str)
+	}
+	return tt, nil
+}
+
 // MsgSender is used for JSON output of the sender of a message.
 type MsgSender struct {
 	UID        string `json:"uid"`
@@ -646,5 +707,10 @@ type ChatList struct {
 // SendRes is the result of successfully sending a message.
 type SendRes struct {
 	Message string `json:"message"`
+	RateLimits
+}
+
+// EmptyRes is used for JSON output of a boring command.
+type EmptyRes struct {
 	RateLimits
 }

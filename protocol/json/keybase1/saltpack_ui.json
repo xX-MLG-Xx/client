@@ -11,12 +11,15 @@
       "type": "enum",
       "name": "SaltpackSenderType",
       "symbols": [
-        "NOT_TRACKED_0",
-        "UNKNOWN_1",
-        "ANONYMOUS_2",
-        "TRACKING_BROKE_3",
-        "TRACKING_OK_4",
-        "SELF_5"
+        "ZERO_0",
+        "NOT_TRACKED_1",
+        "UNKNOWN_2",
+        "ANONYMOUS_3",
+        "TRACKING_BROKE_4",
+        "TRACKING_OK_5",
+        "SELF_6",
+        "REVOKED_7",
+        "EXPIRED_8"
       ]
     },
     {

@@ -417,12 +417,15 @@ export const RekeyUIRekeyEventType = {
 }
 
 export const SaltpackUiSaltpackSenderType = {
-  notTracked: 0,
-  unknown: 1,
-  anonymous: 2,
-  trackingBroke: 3,
-  trackingOk: 4,
-  self: 5,
+  zero: 0,
+  notTracked: 1,
+  unknown: 2,
+  anonymous: 3,
+  trackingBroke: 4,
+  trackingOk: 5,
+  self: 6,
+  revoked: 7,
+  expired: 8,
 }
 
 export const TlfKeysTLFIdentifyBehavior = {
@@ -3742,12 +3745,15 @@ export type SaltpackSender = {
 }
 
 export type SaltpackSenderType = 
-    0 // NOT_TRACKED_0
-  | 1 // UNKNOWN_1
-  | 2 // ANONYMOUS_2
-  | 3 // TRACKING_BROKE_3
-  | 4 // TRACKING_OK_4
-  | 5 // SELF_5
+    0 // ZERO_0
+  | 1 // NOT_TRACKED_1
+  | 2 // UNKNOWN_2
+  | 3 // ANONYMOUS_3
+  | 4 // TRACKING_BROKE_4
+  | 5 // TRACKING_OK_5
+  | 6 // SELF_6
+  | 7 // REVOKED_7
+  | 8 // EXPIRED_8
 
 export type SaltpackSignOptions = {
   detached: boolean,

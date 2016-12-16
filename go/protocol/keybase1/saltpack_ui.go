@@ -11,30 +11,39 @@ import (
 type SaltpackSenderType int
 
 const (
-	SaltpackSenderType_NOT_TRACKED    SaltpackSenderType = 0
-	SaltpackSenderType_UNKNOWN        SaltpackSenderType = 1
-	SaltpackSenderType_ANONYMOUS      SaltpackSenderType = 2
-	SaltpackSenderType_TRACKING_BROKE SaltpackSenderType = 3
-	SaltpackSenderType_TRACKING_OK    SaltpackSenderType = 4
-	SaltpackSenderType_SELF           SaltpackSenderType = 5
+	SaltpackSenderType_ZERO           SaltpackSenderType = 0
+	SaltpackSenderType_NOT_TRACKED    SaltpackSenderType = 1
+	SaltpackSenderType_UNKNOWN        SaltpackSenderType = 2
+	SaltpackSenderType_ANONYMOUS      SaltpackSenderType = 3
+	SaltpackSenderType_TRACKING_BROKE SaltpackSenderType = 4
+	SaltpackSenderType_TRACKING_OK    SaltpackSenderType = 5
+	SaltpackSenderType_SELF           SaltpackSenderType = 6
+	SaltpackSenderType_REVOKED        SaltpackSenderType = 7
+	SaltpackSenderType_EXPIRED        SaltpackSenderType = 8
 )
 
 var SaltpackSenderTypeMap = map[string]SaltpackSenderType{
-	"NOT_TRACKED":    0,
-	"UNKNOWN":        1,
-	"ANONYMOUS":      2,
-	"TRACKING_BROKE": 3,
-	"TRACKING_OK":    4,
-	"SELF":           5,
+	"ZERO":           0,
+	"NOT_TRACKED":    1,
+	"UNKNOWN":        2,
+	"ANONYMOUS":      3,
+	"TRACKING_BROKE": 4,
+	"TRACKING_OK":    5,
+	"SELF":           6,
+	"REVOKED":        7,
+	"EXPIRED":        8,
 }
 
 var SaltpackSenderTypeRevMap = map[SaltpackSenderType]string{
-	0: "NOT_TRACKED",
-	1: "UNKNOWN",
-	2: "ANONYMOUS",
-	3: "TRACKING_BROKE",
-	4: "TRACKING_OK",
-	5: "SELF",
+	0: "ZERO",
+	1: "NOT_TRACKED",
+	2: "UNKNOWN",
+	3: "ANONYMOUS",
+	4: "TRACKING_BROKE",
+	5: "TRACKING_OK",
+	6: "SELF",
+	7: "REVOKED",
+	8: "EXPIRED",
 }
 
 func (e SaltpackSenderType) String() string {

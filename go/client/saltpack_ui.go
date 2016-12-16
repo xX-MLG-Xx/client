@@ -27,6 +27,18 @@ func (s *SaltpackUI) doNonInteractive(arg keybase1.SaltpackPromptForDecryptArg) 
 			return nil
 		}
 		return libkb.IdentifyFailedError{Assertion: arg.Sender.Username, Reason: "sender identity failed"}
+	case keybase1.SaltpackSenderType_REVOKED:
+		if s.force {
+			s.G().Log.Warning("The key that signed this message is revoked, but forcing through.")
+			return nil
+		}
+		return libkb.IdentifyFailedError{Assertion: arg.Sender.Username, Reason: "sender key revoked"}
+	case keybase1.SaltpackSenderType_EXPIRED:
+		if s.force {
+			s.G().Log.Warning("The key that signed this message is expired, but forcing through.")
+			return nil
+		}
+		return libkb.IdentifyFailedError{Assertion: arg.Sender.Username, Reason: "sender key expired"}
 	default:
 		return nil
 	}
@@ -46,6 +58,12 @@ func (s *SaltpackUI) doInteractive(arg keybase1.SaltpackPromptForDecryptArg) err
 		why = "The sender of this message has chosen to remain anonymous"
 	case keybase1.SaltpackSenderType_TRACKING_BROKE:
 		why = "You follow the sender of this message, but your view of them is broken"
+		def = libkb.PromptDefaultNo
+	case keybase1.SaltpackSenderType_REVOKED:
+		why = "The key that signed this message has been revoked"
+		def = libkb.PromptDefaultNo
+	case keybase1.SaltpackSenderType_EXPIRED:
+		why = "The key that signed this message has expired"
 		def = libkb.PromptDefaultNo
 	}
 	why += ". Go ahead and decrypt?"

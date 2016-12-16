@@ -59,26 +59,66 @@ func (e *SaltpackSenderIdentify) Run(ctx *Context) (err error) {
 		return
 	}
 
-	if err = e.lookupSender(); err != nil {
-		if _, ok := err.(libkb.NotFoundError); ok {
-			e.res.SenderType = keybase1.SaltpackSenderType_UNKNOWN
-			err = nil
-		}
-		return err
+	// Essentially nothing that this key/basics.json endpoint tells us is
+	// verifiable. Don't even retain the username it gives us here; we'll get
+	// it from LoadUser instead, where we check some of the server's work.
+	//
+	// Security note: This is an opportunity for the server to maliciously DOS
+	// us, by lying and saying a key doesn't exist. If we wanted to really
+	// prevent this, we could include a KID->UID index in the Merkle tree that
+	// we pin against the bitcoin blockchain, and trust that Someone Out There
+	// would audit it for consistency with the main body of the tree. File this
+	// one away in the Book of Things We Would Do With Infinite Time and Money.
+	var maybeUID keybase1.UID
+	_, maybeUID, err = libkb.KeyLookupKIDIncludingRevoked(e.G(), e.arg.publicKey)
+	if _, ok := err.(libkb.NotFoundError); ok {
+		// The key in question might not be a Keybase key at all (for example,
+		// anything generated with the Python saltpack implementation, which
+		// isn't Keybase-aware). In that case we'll get this NotFoundError, and
+		// we can just report it as an unknown sender.
+		e.res.SenderType = keybase1.SaltpackSenderType_UNKNOWN
+		err = nil
+		return
+	} else if err != nil {
+		return
 	}
 
-	if err = e.identifySender(ctx); err != nil {
-		return err
+	loadUserArg := libkb.NewLoadUserByUIDArg(e.G(), maybeUID)
+	var user *libkb.User
+	user, err = libkb.LoadUser(loadUserArg)
+	if err != nil {
+		return
 	}
 
-	return nil
-}
+	// Use the ComputedKeyFamily assembled by LoadUser to get the status of the
+	// key we started with. (This is where we'll detect corner cases like the
+	// server straight up lying about who owns a given key. An inconsistency
+	// like that will be an error here.)
+	var isActive bool
+	var inactiveSenderType keybase1.SaltpackSenderType
+	isActive, inactiveSenderType, err = user.GetComputedKeyFamily().GetSaltpackSenderTypeOrActive(e.arg.publicKey)
+	if err != nil {
+		return
+	}
 
-func (e *SaltpackSenderIdentify) lookupSender() (err error) {
-	defer e.G().Trace("SaltpackDecrypt::lookupSender", func() error { return err })()
-	e.G().Log.Debug("Lookup KID: %s", e.arg.publicKey)
-	e.res.Username, e.res.Uid, err = libkb.KeyLookupKID(e.G(), e.arg.publicKey)
-	return err
+	// At this point, since GetSaltpackSenderTypeOrActive has not returned an
+	// error, we can consider the UID/username returned by the server to be
+	// "mostly legit". It's still possible that the identify below could fail,
+	// or that the key turns out to be revoked, but those are all states that
+	// we'll report to the user, as opposed to unexpected failures or corner
+	// case server lies.
+	e.res.Uid = user.GetUID()
+	e.res.Username = user.GetName()
+	if !isActive {
+		e.res.SenderType = inactiveSenderType
+		return
+	}
+
+	// The key is active! This is the happy path. We'll do an identify and show
+	// it to the user, and the SenderType will follow from that.
+	err = e.identifySender(ctx)
+
+	return
 }
 
 func (e *SaltpackSenderIdentify) identifySender(ctx *Context) (err error) {

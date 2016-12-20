@@ -1025,13 +1025,11 @@ func (ckf ComputedKeyFamily) GetSaltpackSenderTypeOrActive(kid keybase1.KID) (bo
 		// TODO: Get rid of the whole concept of expiration?
 		if info.GetETime().Before(time.Now()) && !info.GetETime().IsZero() {
 			return false, keybase1.SaltpackSenderType_EXPIRED, nil
-		} else {
-			// This is the only branch where we return true.
-			return true, keybase1.SaltpackSenderType_ZERO, nil
 		}
-	} else {
-		// This also shouldn't happen without a server bug or an very unlikely
-		// race condition.
-		return false, keybase1.SaltpackSenderType_UNKNOWN, fmt.Errorf("Key %s neither active nor revoked (%d)", kid.String(), info.Status)
+		// This is the only branch where we return true.
+		return true, keybase1.SaltpackSenderType_ZERO, nil
 	}
+	// This also shouldn't happen without a server bug or an very unlikely
+	// race condition.
+	return false, keybase1.SaltpackSenderType_UNKNOWN, fmt.Errorf("Key %s neither active nor revoked (%d)", kid.String(), info.Status)
 }

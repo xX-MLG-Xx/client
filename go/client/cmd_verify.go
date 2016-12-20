@@ -91,7 +91,7 @@ func (c *CmdVerify) ParseArgv(ctx *cli.Context) error {
 	return nil
 }
 
-func (c *CmdVerify) Run() (err error) {
+func (c *CmdVerify) Run() error {
 	cli, err := GetSaltpackClient(c.G())
 	if err != nil {
 		return err
@@ -113,19 +113,24 @@ func (c *CmdVerify) Run() (err error) {
 		return err
 	}
 	snk, src, err := c.ClientFilterOpen(c.G())
-	if err == nil {
-		arg := keybase1.SaltpackVerifyArg{
-			Source: src,
-			Sink:   snk,
-			Opts: keybase1.SaltpackVerifyOptions{
-				Signature: c.detachedData,
-				SignedBy:  c.signedBy,
-			},
-		}
-		err = cli.SaltpackVerify(context.TODO(), arg)
+	if err != nil {
+		return err
 	}
-	cerr := c.Close(err)
-	return libkb.PickFirstError(err, cerr)
+
+	arg := keybase1.SaltpackVerifyArg{
+		Source: src,
+		Sink:   snk,
+		Opts: keybase1.SaltpackVerifyOptions{
+			Signature: c.detachedData,
+			SignedBy:  c.signedBy,
+		},
+	}
+	err = cli.SaltpackVerify(context.TODO(), arg)
+	if err != nil {
+		return err
+	}
+
+	return c.Close(err)
 }
 
 func (c *CmdVerify) GetUsage() libkb.Usage {

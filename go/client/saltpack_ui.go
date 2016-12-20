@@ -95,12 +95,35 @@ func (s *SaltpackUI) SaltpackVerifySuccess(_ context.Context, arg keybase1.Saltp
 	var un string
 	if arg.Sender.SenderType == keybase1.SaltpackSenderType_UNKNOWN {
 		un = "The signer of this message is unknown to Keybase"
+	} else if arg.Sender.SenderType == keybase1.SaltpackSenderType_TRACKING_OK ||
+		arg.Sender.SenderType == keybase1.SaltpackSenderType_NOT_TRACKED {
+		un = fmt.Sprintf("Signed by %s", ColorString("bold", arg.Sender.Username))
+	} else if arg.Sender.SenderType == keybase1.SaltpackSenderType_SELF {
+		un = fmt.Sprintf("Signed by %s (you)", ColorString("bold", arg.Sender.Username))
 	} else {
-		var you string
-		if arg.Sender.SenderType == keybase1.SaltpackSenderType_SELF {
-			you = " (you)"
-		}
-		un = fmt.Sprintf("Signed by %s%s", ColorString("bold", arg.Sender.Username), you)
+		return fmt.Errorf("Unexpected sender type: %s", arg.Sender.SenderType)
+	}
+	fmt.Fprintf(w, ColorString("green", fmt.Sprintf("Signature verified. %s.\n", un)))
+	if arg.Sender.SenderType == keybase1.SaltpackSenderType_UNKNOWN {
+		fmt.Fprintf(w, ColorString("green", fmt.Sprintf("Signing key ID: %s.\n", arg.SigningKID)))
+	}
+
+	return nil
+}
+
+func (s *SaltpackUI) SaltpackVerifyBadSender(_ context.Context, arg keybase1.SaltpackVerifySuccessArg) error {
+	// write messages to stderr
+	w := s.terminal.ErrorWriter()
+	var un string
+	if arg.Sender.SenderType == keybase1.SaltpackSenderType_UNKNOWN {
+		un = "The signer of this message is unknown to Keybase"
+	} else if arg.Sender.SenderType == keybase1.SaltpackSenderType_TRACKING_OK ||
+		arg.Sender.SenderType == keybase1.SaltpackSenderType_NOT_TRACKED {
+		un = fmt.Sprintf("Signed by %s", ColorString("bold", arg.Sender.Username))
+	} else if arg.Sender.SenderType == keybase1.SaltpackSenderType_SELF {
+		un = fmt.Sprintf("Signed by %s (you)", ColorString("bold", arg.Sender.Username))
+	} else {
+		return fmt.Errorf("Unexpected sender type: %s", arg.Sender.SenderType)
 	}
 	fmt.Fprintf(w, ColorString("green", fmt.Sprintf("Signature verified. %s.\n", un)))
 	if arg.Sender.SenderType == keybase1.SaltpackSenderType_UNKNOWN {

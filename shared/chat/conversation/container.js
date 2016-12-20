@@ -46,6 +46,10 @@ class ConversationContainer extends Component<void, Props, State> {
     }
   }
 
+  _onToggleSidePanel = () => {
+    this.setState({sidePanelOpen: !this.state.sidePanelOpen})
+  }
+
   render () {
     if (!this.props.selectedConversation) {
       return <Box style={{flex: 1}} />
@@ -54,7 +58,7 @@ class ConversationContainer extends Component<void, Props, State> {
     return <Conversation
       {...this.props}
       sidePanelOpen={this.state.sidePanelOpen}
-      onToggleSidePanel={() => this.setState({sidePanelOpen: !this.state.sidePanelOpen})}
+      onToggleSidePanel={this._onToggleSidePanel}
       setInputText={this._setInputText}
       inputText={this.state.inputText}
     />
@@ -100,7 +104,7 @@ export default connect(
   (dispatch: Dispatch) => ({
     onEditMessage: (message: Message) => { dispatch(editMessage(message)) },
     onDeleteMessage: (message: Message) => { dispatch(deleteMessage(message)) },
-    onLoadMoreMessages: (conversationIDKey: ConversationIDKey) => dispatch(loadMoreMessages(conversationIDKey)),
+    onLoadMoreMessages: (conversationIDKey: ConversationIDKey) => dispatch(loadMoreMessages(conversationIDKey, false)),
     onShowProfile: (username: string) => dispatch(onUserClick(username, '')),
     onOpenFolder: () => dispatch(openFolder()),
     onPostMessage: (selectedConversation, text) => dispatch(postMessage(selectedConversation, new HiddenString(text))),

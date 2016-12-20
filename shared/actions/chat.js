@@ -74,8 +74,15 @@ const {
 const {conversationIDToKey, keyToConversationID, InboxStateRecord, MetaDataRecord, makeSnippet, serverMessageToMessageBody} = Constants
 
 const _selectedSelector = (state: TypedState) => {
-  const selected = getPath(state.routeTree.routeState, [chatTab]).last()
-  return selected === Constants.nothingSelected ? null : selected
+  const chatPath = getPath(state.routeTree.routeState, [chatTab])
+  if (chatPath.get(0) !== chatTab) {
+    return null
+  }
+  const selected = chatPath.get(1)
+  if (selected === Constants.nothingSelected) {
+    return null
+  }
+  return selected
 }
 
 const _selectedInboxSelector = (state: TypedState, conversationIDKey) => {

@@ -1,15 +1,15 @@
 // @flow
 import MessageText from './text'
 import * as ChatConstants from '../../../constants/chat'
-import AttachmentMessage from './attachment'
+import AttachmentMessageRender from './attachment'
 import Timestamp from './timestamp'
 import {formatTimeForMessages} from '../../../util/timestamp'
 import React from 'react'
 import {Box} from '../../../common-adapters'
 
-import type {Message, ServerMessage} from '../../../constants/chat'
+import type {Message, AttachmentMessage, ServerMessage} from '../../../constants/chat'
 
-const factory = (message: Message, includeHeader: boolean, index: number, key: string, isFirstNewMessage: boolean, style: Object, isScrolling: boolean, onAction: (message: ServerMessage, event: any) => void, isSelected: boolean, onLoadAttachment: (messageID: ChatConstants.MessageID, filename: string) => void, onOpenInFileUI: (path: string) => void) => {
+const factory = (message: Message, includeHeader: boolean, index: number, key: string, isFirstNewMessage: boolean, style: Object, isScrolling: boolean, onAction: (message: ServerMessage, event: any) => void, isSelected: boolean, onLoadAttachment: (messageID: ChatConstants.MessageID, filename: string) => void, onOpenInFileUI: (path: string) => void, onOpenInPopup: (message: AttachmentMessage) => void) => {
   if (!message) {
     return <Box key={key} style={style} />
   }
@@ -34,7 +34,7 @@ const factory = (message: Message, includeHeader: boolean, index: number, key: s
         style={style}
         />
     case 'Attachment':
-      return <AttachmentMessage
+      return <AttachmentMessageRender
         key={key}
         style={style}
         message={message}
@@ -43,6 +43,7 @@ const factory = (message: Message, includeHeader: boolean, index: number, key: s
         isFirstNewMessage={isFirstNewMessage}
         onLoadAttachment={onLoadAttachment}
         onOpenInFileUI={onOpenInFileUI}
+        onOpenInPopup={onOpenInPopup}
         messageID={message.messageID}
         onAction={onAction}
         />

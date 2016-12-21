@@ -25,7 +25,7 @@ const colorForAuthor = (followState: Constants.FollowState) => {
 // TODO abstract this part so it is the same as message text
 class _AttachmentMessage extends PureComponent<void, Props & {onIconClick: (event: any) => void}, void> {
   render () {
-    const {message, style, includeHeader, isFirstNewMessage, onLoadAttachment, onOpenInFileUI, onIconClick} = this.props
+    const {message, style, includeHeader, isFirstNewMessage, onLoadAttachment, onOpenInFileUI, onOpenInPopup, onIconClick} = this.props
     const {downloadedPath} = message
     return (
       <Box style={{...globalStyles.flexBoxColumn, flex: 1, ...(isFirstNewMessage ? stylesFirstNewMessage : null), ...style}} className='message'>
@@ -46,7 +46,7 @@ class _AttachmentMessage extends PureComponent<void, Props & {onIconClick: (even
                   <Text type='Body' style={{marginTop: globalMargins.xtiny, flex: 1}} onClick={() => onOpenInFileUI(downloadedPath)}>
                     Show downloaded file.
                   </Text>}
-                {!!message.previewPath && message.previewType === 'Image' && <Box style={{marginTop: globalMargins.xtiny, flex: 1}}><img src={message.previewPath} /></Box>}
+                {!!message.previewPath && message.previewType === 'Image' && <Box style={{marginTop: globalMargins.xtiny, flex: 1}} onClick={() => onOpenInPopup(message)}><img src={message.previewPath} /></Box>}
                 <div className='action-button'>
                   <Icon type='iconfont-ellipsis' style={{marginLeft: globalMargins.tiny, marginRight: globalMargins.tiny}} onClick={onIconClick} />
                 </div>

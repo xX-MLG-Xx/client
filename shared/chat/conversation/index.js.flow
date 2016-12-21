@@ -3,7 +3,7 @@ import {Component} from 'react'
 import {List, Map} from 'immutable'
 
 import type {Props as BannerMessage} from './banner'
-import type {ConversationIDKey, Message, MessageID, MetaData, ParticipantItem} from '../../constants/chat'
+import type {ConversationIDKey, Message, AttachmentMessage, MessageID, MetaData, ParticipantItem} from '../../constants/chat'
 
 export type Props = {
   isLoading: boolean,
@@ -23,6 +23,7 @@ export type Props = {
   onAttach: () => void,
   onLoadAttachment: (messageID: MessageID, filename: string) => void,
   onOpenInFileUI: (filename: string) => void,
+  onOpenInPopup: (message: AttachmentMessage) => void,
   participants: List<ParticipantItem>,
   selectedConversation: ?ConversationIDKey,
   firstNewMessageID: ?MessageID,

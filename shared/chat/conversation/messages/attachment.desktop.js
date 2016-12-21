@@ -23,7 +23,7 @@ const colorForAuthor = (followState: Constants.FollowState) => {
 }
 
 // TODO abstract this part so it is the same as message text
-class _AttachmentMessage extends PureComponent<void, Props & {onIconClick: (event: any) => void}, void> {
+class _AttachmentMessage extends PureComponent<void, Props & {onIconClick: (event: any) => void, onOpenInPopup: (event: any) => void}, void> {
   render () {
     const {message, style, includeHeader, isFirstNewMessage, onLoadAttachment, onOpenInFileUI, onOpenInPopup, onIconClick} = this.props
     const {downloadedPath} = message
@@ -46,7 +46,7 @@ class _AttachmentMessage extends PureComponent<void, Props & {onIconClick: (even
                   <Text type='Body' style={{marginTop: globalMargins.xtiny, flex: 1}} onClick={() => onOpenInFileUI(downloadedPath)}>
                     Show downloaded file.
                   </Text>}
-                {!!message.previewPath && message.previewType === 'Image' && <Box style={{marginTop: globalMargins.xtiny, flex: 1}} onClick={() => onOpenInPopup(message)}><img src={message.previewPath} /></Box>}
+                {!!message.previewPath && message.previewType === 'Image' && <Box style={{marginTop: globalMargins.xtiny, flex: 1}} onClick={onOpenInPopup}><img src={message.previewPath} /></Box>}
                 <div className='action-button'>
                   <Icon type='iconfont-ellipsis' style={{marginLeft: globalMargins.tiny, marginRight: globalMargins.tiny}} onClick={onIconClick} />
                 </div>
@@ -62,6 +62,9 @@ class _AttachmentMessage extends PureComponent<void, Props & {onIconClick: (even
 export default withHandlers({
   onIconClick: (props: Props) => event => {
     props.onAction(props.message, event)
+  },
+  onOpenInPopup: (props: Props) => event => {
+    props.onOpenInPopup(props.message, event)
   },
 })(_AttachmentMessage)
 

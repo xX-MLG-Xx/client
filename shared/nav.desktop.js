@@ -26,7 +26,7 @@ function Nav (props: Props) {
         />
       }
       <Box style={{...globalStyles.flexBoxColumn, flex: 1}}>
-        {props.routeStack.filterNot(r => r.tags.layerOnTop).last().component}
+        {props.routeStack.findLast(r => !r.tags.layerOnTop).component}
         {props.routeStack.filter(r => r.tags.layerOnTop).map(r => r.leafComponent)}
       </Box>
       <div id='popupContainer' />

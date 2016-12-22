@@ -249,7 +249,9 @@ func (u *CachedUserLoader) Load(arg LoadUserArg) (ret *keybase1.UserPlusAllKeys,
 func (u *CachedUserLoader) CheckKIDForUID(uid keybase1.UID, kid keybase1.KID) (found bool, revokedAt *keybase1.KeybaseTime, err error) {
 
 	var info CachedUserLoadInfo
-	upk, _, err := u.loadWithInfo(NewLoadUserByUIDArg(u.G(), uid), &info)
+	arg := NewLoadUserByUIDArg(u.G(), uid)
+	arg.PublicKeyOptional = true
+	upk, _, err := u.loadWithInfo(arg, &info)
 
 	if err != nil {
 		return false, nil, err
@@ -258,7 +260,9 @@ func (u *CachedUserLoader) CheckKIDForUID(uid keybase1.UID, kid keybase1.KID) (f
 	if found || info.LoadedLeaf || info.LoadedUser {
 		return found, revokedAt, nil
 	}
-	upk, _, err = u.loadWithInfo(NewLoadUserByUIDForceArg(u.G(), uid), nil)
+	arg = NewLoadUserByUIDArg(u.G(), uid)
+	arg.PublicKeyOptional = true
+	upk, _, err = u.loadWithInfo(arg, nil)
 	if err != nil {
 		return false, nil, err
 	}

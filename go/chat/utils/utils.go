@@ -208,6 +208,7 @@ func lookupPrivateTLF(ctx context.Context, tlfcli keybase1.TlfInterface, query k
 		CanonicalName:    string(resp.CanonicalName),
 		IdentifyFailures: resp.Breaks.Breaks,
 	}
+	fmt.Printf("******* lookupPrivateTLF info: %+v\n", info)
 	return &info, nil
 }
 
